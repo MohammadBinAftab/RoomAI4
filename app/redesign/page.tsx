@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Upload } from "lucide-react";
-import { CldUploadWidget } from 'next-cloudinary';
+import { CldUploadWidget } from "next-cloudinary";
 import { useToast } from "@/components/ui/use-toast";
 
 const styles = [
@@ -29,13 +29,23 @@ const models = [
 ];
 
 export default function RedesignPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const { toast } = useToast();
   const [image, setImage] = useState("");
   const [style, setStyle] = useState("");
   const [model, setModel] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/api/auth/signin");
+    }
+  }, [status, router]);
+
+  if (status === "loading") {
+    return <p>Loading...</p>; // You can replace this with a loader component.
+  }
 
   const handleUploadSuccess = (result: any) => {
     setImage(result.info.secure_url);
@@ -46,11 +56,6 @@ export default function RedesignPage() {
   };
 
   const handleGenerate = async () => {
-    if (!session) {
-      router.push("/api/auth/signin");
-      return;
-    }
-
     if (!image || !style || !model) {
       toast({
         title: "Error",
@@ -73,7 +78,7 @@ export default function RedesignPage() {
 
       const data = await response.json();
       setImage(data.url);
-      
+
       toast({
         title: "Success",
         description: "Your room has been redesigned!",
