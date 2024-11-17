@@ -20,7 +20,7 @@ export function Navbar() {
       <div className="container mx-auto flex h-16 items-center px-4">
         <Link href="/" className="flex items-center gap-2">
           <Paintbrush className="h-6 w-6" />
-          <span className="text-xl font-bold">RoomRedesign AI</span>
+          <span className="text-xl font-bold">RoomAI</span>
         </Link>
 
         <div className="ml-auto flex items-center gap-4">

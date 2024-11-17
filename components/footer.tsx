@@ -9,7 +9,7 @@ export function Footer() {
           <div>
             <Link href="/" className="flex items-center gap-2">
               <Paintbrush className="h-6 w-6" />
-              <span className="text-xl font-bold">RoomRedesign AI</span>
+              <span className="text-xl font-bold">RoomAI</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground">
               Transform your living space with AI-powered room redesign technology.
@@ -66,7 +66,7 @@ export function Footer() {
         </div>
         
         <div className="mt-8 border-t pt-8 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} RoomRedesign AI. All rights reserved.
+          © {new Date().getFullYear()} RoomAI. All rights reserved.
         </div>
       </div>
     </footer>

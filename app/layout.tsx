@@ -11,7 +11,7 @@ import { Providers} from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "RoomRedesign AI",
+  title: "RoomAI",
   description: "Transform your space with AI-powered room redesign",
 };
 

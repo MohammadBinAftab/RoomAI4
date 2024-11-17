@@ -53,7 +53,7 @@ export function Features() {
         </div>
         
         <div className="flex flex-col justify-center">
-          <h2 className="text-3xl font-bold">Why Choose RoomRedesign AI?</h2>
+          <h2 className="text-3xl font-bold">Why Choose RoomAI?</h2>
           <div className="mt-8 grid gap-6">
             {features.map((feature) => (
               <div key={feature.title} className="flex gap-4">
