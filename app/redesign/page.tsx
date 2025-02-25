@@ -70,7 +70,7 @@ export default function RedesignPage() {
   const handleManualUpload = async (file: File) => {
     try {
       const formData = new FormData();
-      formData.append("file", file[0]);
+      formData.append("file", file);
       formData.append("upload_preset",'room-redesign');
 
       const response = await fetch(
