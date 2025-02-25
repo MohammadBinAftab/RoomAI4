@@ -70,14 +70,11 @@ export default function RedesignPage() {
   const handleManualUpload = async (file: File) => {
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append(
-        "upload_preset",
-        process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!
-      );
+      formData.append("file", file[0]);
+      formData.append("upload_preset",'room-redesign');
 
       const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        `https://api.cloudinary.com/v1_1/dcbzyjj0e/image/upload`,
         {
           method: "POST",
           body: formData,
@@ -163,7 +160,7 @@ export default function RedesignPage() {
               />
             ) : (
               <CldUploadWidget
-                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                uploadPreset={room-redesign}
                 onSuccess={handleUploadSuccess}
               >
                 {({ open }) => (
