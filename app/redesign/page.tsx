@@ -44,17 +44,64 @@ export default function RedesignPage() {
   }, [status, router]);
 
   if (status === "loading") {
-    return <p>Loading...</p>; // You can replace this with a loader component.
+    return <p>Loading...</p>;
   }
 
-  const handleUploadSuccess = (result: any) => {
-    setImage(result.info.secure_url);
-    toast({
-      title: "Success",
-      description: "Image uploaded successfully",
-    });
+  // ✅ Handle Successful Upload from CldUploadWidget
+  const handleUploadSuccess = async (result: any) => {
+    try {
+      const uploadedUrl = result.info.secure_url;
+      setImage(uploadedUrl);
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Upload failed",
+        variant: "destructive",
+      });
+    }
   };
 
+  // ✅ Manual Upload Fallback (if CldUploadWidget Fails)
+  const handleManualUpload = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append(
+        "upload_preset",
+        process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!
+      );
+
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) throw new Error("Upload failed");
+
+      const data = await response.json();
+      setImage(data.secure_url);
+
+      toast({
+        title: "Success",
+        description: "Image uploaded successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to upload image",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // ✅ AI Image Generation Function
   const handleGenerate = async () => {
     if (!image || !style || !model) {
       toast({
@@ -105,6 +152,7 @@ export default function RedesignPage() {
         </div>
 
         <div className="w-full max-w-md space-y-4">
+          {/* Image Upload Section */}
           <div className="flex flex-col items-center gap-4">
             {image ? (
               <img
@@ -129,8 +177,21 @@ export default function RedesignPage() {
                 )}
               </CldUploadWidget>
             )}
+
+            {/* Fallback Manual Upload */}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => e.target.files && handleManualUpload(e.target.files[0])}
+              className="hidden"
+              id="file-upload"
+            />
+            <label htmlFor="file-upload">
+              <Button variant="outline">Or Select File</Button>
+            </label>
           </div>
 
+          {/* Select Style */}
           <Select value={style} onValueChange={setStyle}>
             <SelectTrigger>
               <SelectValue placeholder="Select style" />
@@ -144,6 +205,7 @@ export default function RedesignPage() {
             </SelectContent>
           </Select>
 
+          {/* Select AI Model */}
           <Select value={model} onValueChange={setModel}>
             <SelectTrigger>
               <SelectValue placeholder="Select AI model" />
@@ -157,6 +219,7 @@ export default function RedesignPage() {
             </SelectContent>
           </Select>
 
+          {/* Generate Button */}
           <Button
             onClick={handleGenerate}
             className="w-full"
