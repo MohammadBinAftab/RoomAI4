@@ -160,7 +160,7 @@ export default function RedesignPage() {
               />
             ) : (
               <CldUploadWidget
-                uploadPreset={room-redesign}
+                uploadPreset="room-redesign"
                 onSuccess={handleUploadSuccess}
               >
                 {({ open }) => (
