@@ -1,19 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Paintbrush, LogOut } from "lucide-react";
-import { signIn, signOut } from "next-auth/react";
+import { Paintbrush } from "lucide-react";
+import { UserButton, SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
+
 export function Navbar() {
-  const { data: session } = useSession();
+  const { user } = useUser();
 
   return (
     <nav className="border-b">
@@ -31,34 +25,15 @@ export function Navbar() {
             <Button variant="ghost">Pricing</Button>
           </Link>
 
-          {session ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger>
-                <Avatar>
-                  <AvatarImage src={session.user?.image || ""} />
-                  <AvatarFallback>
-                    {session.user?.name?.charAt(0) || "U"}
-                  </AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Link href="/redesign">Redesign Room</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/pricing">Buy Credits</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => signOut()}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <Button onClick={() => {
-              signIn();
-           }}>Login</Button>
-          )}
+          <SignedOut>
+            <SignInButton>
+              <Button>Login</Button>
+            </SignInButton>
+          </SignedOut>
+
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
         </div>
       </div>
     </nav>
