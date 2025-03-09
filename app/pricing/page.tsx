@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUser, useSignIn, SignInButton } from "@clerk/nextjs"; // Clerk Auth
+import { useUser } from "@clerk/nextjs"; // Clerk Auth
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
@@ -47,14 +47,15 @@ const plans = [
 
 export default function PricingPage() {
   const { isSignedIn, user } = useUser();
-  const { signIn } = useSignIn();
   const router = useRouter();
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
 
   const handlePayment = async (price: number, planName: string) => {
     if (!isSignedIn) {
-      console.log("User not signed in. Redirecting...");
-      signIn?.redirectToSignIn();
+      console.log("User not signed in. Redirecting to Clerk sign-in page...");
+      router.push(
+        "https://next-chamois-96.accounts.dev/sign-in?redirect_url=https%3A%2F%2Froom-ai-4.vercel.app%2F"
+      );
       return;
     }
 
@@ -66,23 +67,10 @@ export default function PricingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: price }),
       });
-
       const data = await response.json();
-      console.log("Order Data:", data);
-
-      if (!data?.order_id) {
-        console.error("Invalid order data:", data);
-        return;
-      }
-
-      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-      if (!razorpayKey) {
-        console.error("Missing Razorpay Key in .env");
-        return;
-      }
 
       const options = {
-        key: razorpayKey,
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: price * 100,
         currency: "INR",
         name: "Room Redesign",
@@ -93,10 +81,12 @@ export default function PricingPage() {
           // Handle successful payment (e.g., update user credits)
         },
         prefill: {
-          name: user?.fullName || "Guest",
-          email: user?.primaryEmailAddress || "guest@example.com",
+          name: user?.fullName || "",
+          email: user?.primaryEmailAddress || "",
         },
-        theme: { color: "#3399cc" },
+        theme: {
+          color: "#3399cc",
+        },
       };
 
       const razorpay = new window.Razorpay(options);
@@ -154,7 +144,15 @@ export default function PricingPage() {
 
         {!isSignedIn && (
           <div className="text-center mt-6">
-            <SignInButton />
+            <Button
+              onClick={() =>
+                router.push(
+                  "https://next-chamois-96.accounts.dev/sign-in?redirect_url=https%3A%2F%2Froom-ai-4.vercel.app%2F"
+                )
+              }
+            >
+              Sign In to Purchase
+            </Button>
           </div>
         )}
       </div>
