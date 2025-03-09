@@ -6,19 +6,19 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-export async function POST(request: NextRequest) {
+export async function POST(request) {
     try {
-        const body = await request.json(); // Ensure request has JSON body
-        const { amount } = body; // Get the amount from the request body
+        const body = await request.json(); // Ensure request body is read
+        const { amount } = body; // Get amount from request
 
         if (!amount) {
             return NextResponse.json({ error: "Amount is required" }, { status: 400 });
         }
 
         const order = await razorpay.orders.create({
-            amount: amount * 100, // Razorpay expects amount in paise
+            amount: amount * 100, // Convert to paise
             currency: "INR",
-            receipt: "receipt_" + Math.random().toString(36).substring(7),
+            receipt: `receipt_${Math.random().toString(36).substring(7)}`,
         });
 
         return NextResponse.json({ order_id: order.id }, { status: 200 });
