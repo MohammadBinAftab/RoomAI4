@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server"; // Correct import
+import { NextResponse, NextRequest } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const { userId } = getAuth(req); // Corrected authentication method
+    const { userId } = getAuth(req); // Correct usage for Next.js App Router
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
@@ -16,10 +16,9 @@ export async function POST(req: Request) {
       return new NextResponse("Bad Request: Missing prompt", { status: 400 });
     }
 
-    // Implement your logic here (e.g., calling an AI model)
     const response = { message: "AI response goes here", userId };
 
-    return new NextResponse(JSON.stringify(response), { status: 200 });
+    return NextResponse.json(response, { status: 200 });
   } catch (error) {
     console.error("Error processing request:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
