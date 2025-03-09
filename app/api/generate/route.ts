@@ -1,40 +1,28 @@
 import { NextResponse } from "next/server";
-import Replicate from "replicate";
-import { auth } from "@clerk/nextjs/server";
-
-const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
-});
+import { auth } from "@clerk/nextjs"; // Ensure this import is correct
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth(); // Get user ID from Clerk
+    const authData = await auth(); // Await the auth function
+    const { userId } = authData;   // Extract userId after awaiting
+
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    const { image, style, model } = await req.json();
+    const body = await req.json();
+    const { prompt } = body;
 
-    // Here you would check user credits and deduct one credit
-    // Implementation depends on your database choice
-
-    let output;
-    if (model === "stable-diffusion") {
-      output = await replicate.run(
-        "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-        {
-          input: {
-            image,
-            prompt: `Transform this room into a ${style} style room`,
-            negative_prompt: "bad quality, blurry",
-          },
-        }
-      );
+    if (!prompt) {
+      return new NextResponse("Bad Request: Missing prompt", { status: 400 });
     }
 
-    return NextResponse.json({ url: output });
+    // Implement your logic here (e.g., calling an AI model)
+    const response = { message: "AI response goes here", userId };
+
+    return new NextResponse(JSON.stringify(response), { status: 200 });
   } catch (error) {
-    console.error(error);
-    return new NextResponse("Internal Error", { status: 500 });
+    console.error("Error processing request:", error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }
