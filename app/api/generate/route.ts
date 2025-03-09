@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs"; // Ensure this import is correct
+import { getAuth } from "@clerk/nextjs/server"; // Correct import
 
 export async function POST(req: Request) {
   try {
-    const authData = await auth(); // Await the auth function
-    const { userId } = authData;   // Extract userId after awaiting
+    const { userId } = getAuth(req); // Corrected authentication method
 
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
