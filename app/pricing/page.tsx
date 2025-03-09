@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUser, SignInButton } from "@clerk/nextjs"; // Clerk Auth
+import { useUser, useSignIn, SignInButton } from "@clerk/nextjs"; // Clerk Auth
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
@@ -47,12 +47,14 @@ const plans = [
 
 export default function PricingPage() {
   const { isSignedIn, user } = useUser();
+  const { signIn } = useSignIn();
   const router = useRouter();
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
 
   const handlePayment = async (price: number, planName: string) => {
     if (!isSignedIn) {
-      router.push("/sign-in"); // Redirect to Clerk's sign-in page
+      console.log("User not signed in. Redirecting...");
+      signIn?.redirectToSignIn();
       return;
     }
 
@@ -64,10 +66,23 @@ export default function PricingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: price }),
       });
+
       const data = await response.json();
+      console.log("Order Data:", data);
+
+      if (!data?.order_id) {
+        console.error("Invalid order data:", data);
+        return;
+      }
+
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      if (!razorpayKey) {
+        console.error("Missing Razorpay Key in .env");
+        return;
+      }
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKey,
         amount: price * 100,
         currency: "INR",
         name: "Room Redesign",
@@ -75,15 +90,13 @@ export default function PricingPage() {
         order_id: data.order_id,
         handler: function (response: any) {
           console.log("Payment Successful", response);
-          // Handle successful payment here (e.g., update user credits)
+          // Handle successful payment (e.g., update user credits)
         },
         prefill: {
-          name: user?.fullName || "",
-          email: user?.primaryEmailAddress || "",
+          name: user?.fullName || "Guest",
+          email: user?.primaryEmailAddress || "guest@example.com",
         },
-        theme: {
-          color: "#3399cc",
-        },
+        theme: { color: "#3399cc" },
       };
 
       const razorpay = new window.Razorpay(options);
