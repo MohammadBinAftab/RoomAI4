@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Replicate from "replicate";
-import { currentUser } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -8,8 +8,8 @@ const replicate = new Replicate({
 
 export async function POST(req: Request) {
   try {
-    const user = await currentUser();
-    if (!user) {
+    const { userId } = auth(); // Get user ID from Clerk
+    if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
