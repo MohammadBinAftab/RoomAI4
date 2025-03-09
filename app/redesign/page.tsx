@@ -1,8 +1,7 @@
 "use client";
 
-
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,7 +29,7 @@ const models = [
 ];
 
 export default function RedesignPage() {
-  const { data: session, status } = useSession();
+  const { isSignedIn } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [image, setImage] = useState("");
@@ -39,13 +38,13 @@ export default function RedesignPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/api/auth/signin");
+    if (!isSignedIn) {
+      router.push("/sign-in"); // Redirect to Clerk's sign-in page
     }
-  }, [status, router]);
+  }, [isSignedIn, router]);
 
-  if (status === "loading") {
-    return <p>Loading...</p>;
+  if (!isSignedIn) {
+    return <p>Redirecting to sign-in...</p>;
   }
 
   // ✅ Handle Successful Upload from CldUploadWidget
@@ -71,7 +70,7 @@ export default function RedesignPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset",'room-redesign');
+      formData.append("upload_preset", "room-redesign");
 
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/dcbzyjj0e/image/upload`,
@@ -180,7 +179,9 @@ export default function RedesignPage() {
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => e.target.files && handleManualUpload(e.target.files[0])}
+              onChange={(e) =>
+                e.target.files && handleManualUpload(e.target.files[0])
+              }
               className="hidden"
               id="file-upload"
             />
