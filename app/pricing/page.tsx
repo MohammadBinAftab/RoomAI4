@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs"; // Using Clerk authentication
+import { useUser, SignInButton } from "@clerk/nextjs"; // Clerk Auth
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
@@ -46,13 +46,13 @@ const plans = [
 ];
 
 export default function PricingPage() {
-  const { isSignedIn, user } = useUser(); // Clerk authentication
+  const { isSignedIn, user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
 
-  const handlePayment = async (planName: string, price: number) => {
+  const handlePayment = async (price: number, planName: string) => {
     if (!isSignedIn) {
-      router.push("/sign-in"); // Redirect to Clerk sign-in page
+      router.push("/sign-in"); // Redirect to Clerk's sign-in page
       return;
     }
 
@@ -79,7 +79,7 @@ export default function PricingPage() {
         },
         prefill: {
           name: user?.fullName || "",
-          email: user?.primaryEmailAddress?.emailAddress || "",
+          email: user?.primaryEmailAddress || "",
         },
         theme: {
           color: "#3399cc",
@@ -130,7 +130,7 @@ export default function PricingPage() {
               </ul>
               <Button
                 className="mt-8 w-full"
-                onClick={() => handlePayment(plan.name, plan.price)}
+                onClick={() => handlePayment(plan.price, plan.name)}
                 disabled={loading[plan.name]}
               >
                 {loading[plan.name] ? "Processing..." : "Pay Now"}
@@ -138,6 +138,12 @@ export default function PricingPage() {
             </div>
           ))}
         </div>
+
+        {!isSignedIn && (
+          <div className="text-center mt-6">
+            <SignInButton />
+          </div>
+        )}
       </div>
     </>
   );
