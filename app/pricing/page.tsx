@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs"; // Using Clerk authentication
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
@@ -46,17 +46,17 @@ const plans = [
 ];
 
 export default function PricingPage() {
-  const { data: session } = useSession();
+  const { isSignedIn, user } = useUser(); // Clerk authentication
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
 
-  const handlePayment = async (price: number) => {
-    if (!session) {
-      router.push("/api/auth/signin");
+  const handlePayment = async (planName: string, price: number) => {
+    if (!isSignedIn) {
+      router.push("/sign-in"); // Redirect to Clerk sign-in page
       return;
     }
 
-    setLoading(true);
+    setLoading((prev) => ({ ...prev, [planName]: true }));
 
     try {
       const response = await fetch("/api/create-order", {
@@ -73,13 +73,13 @@ export default function PricingPage() {
         name: "Room Redesign",
         description: `${price} credits package`,
         order_id: data.order_id,
-        handler: function(response: any) {
+        handler: function (response: any) {
           console.log("Payment Successful", response);
           // Handle successful payment here (e.g., update user credits)
         },
         prefill: {
-          name: session?.user?.name || "",
-          email: session?.user?.email || "",
+          name: user?.fullName || "",
+          email: user?.primaryEmailAddress?.emailAddress || "",
         },
         theme: {
           color: "#3399cc",
@@ -91,7 +91,7 @@ export default function PricingPage() {
     } catch (error) {
       console.error("Payment Failed", error);
     } finally {
-      setLoading(false);
+      setLoading((prev) => ({ ...prev, [planName]: false }));
     }
   };
 
@@ -130,10 +130,10 @@ export default function PricingPage() {
               </ul>
               <Button
                 className="mt-8 w-full"
-                onClick={() => handlePayment(plan.price)}
-                disabled={loading}
+                onClick={() => handlePayment(plan.name, plan.price)}
+                disabled={loading[plan.name]}
               >
-                {loading ? "Processing..." : "Pay Now"}
+                {loading[plan.name] ? "Processing..." : "Pay Now"}
               </Button>
             </div>
           ))}
