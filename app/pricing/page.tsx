@@ -1,11 +1,13 @@
-"use client";
+'use client';
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs"; // Clerk Auth
+import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import Script from "next/script";
+import { useCredits } from "@/hooks/use-credits";
+import { useToast } from "@/components/ui/use-toast";
 
 declare global {
   interface Window {
@@ -49,8 +51,10 @@ export default function PricingPage() {
   const { isSignedIn, user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
+  const { addCredits } = useCredits(user?.id || '');
+  const { toast } = useToast();
 
-  const handlePayment = async (price: number, planName: string) => {
+  const handlePayment = async (price: number, planName: string, credits: number) => {
     if (!isSignedIn) {
       console.log("User not signed in. Redirecting to Clerk sign-in page...");
       router.push(
@@ -74,11 +78,24 @@ export default function PricingPage() {
         amount: price * 100,
         currency: "INR",
         name: "Room Redesign",
-        description: `${price} credits package`,
+        description: `${credits} credits package`,
         order_id: data.order_id,
-        handler: function (response: any) {
-          console.log("Payment Successful", response);
-          // Handle successful payment (e.g., update user credits)
+        handler: async function (response: any) {
+          try {
+            // Add credits to user's account
+            await addCredits(credits, 'purchase', `Purchased ${planName} plan`);
+            toast({
+              title: "Payment Successful",
+              description: `${credits} credits have been added to your account`,
+            });
+          } catch (error) {
+            console.error("Error adding credits:", error);
+            toast({
+              title: "Error",
+              description: "Failed to add credits. Please contact support.",
+              variant: "destructive",
+            });
+          }
         },
         prefill: {
           name: user?.fullName || "",
@@ -93,6 +110,11 @@ export default function PricingPage() {
       razorpay.open();
     } catch (error) {
       console.error("Payment Failed", error);
+      toast({
+        title: "Payment Failed",
+        description: "Please try again or contact support.",
+        variant: "destructive",
+      });
     } finally {
       setLoading((prev) => ({ ...prev, [planName]: false }));
     }
@@ -133,7 +155,7 @@ export default function PricingPage() {
               </ul>
               <Button
                 className="mt-8 w-full"
-                onClick={() => handlePayment(plan.price, plan.name)}
+                onClick={() => handlePayment(plan.price, plan.name, plan.credits)}
                 disabled={loading[plan.name]}
               >
                 {loading[plan.name] ? "Processing..." : "Pay Now"}
