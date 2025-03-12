@@ -24,6 +24,7 @@ export function Navbar() {
           <Link href="/pricing">
             <Button variant="ghost">Pricing</Button>
           </Link>
+          <CreditsDisplay userId={user.id} />
 
           <SignedOut>
             <SignInButton>
