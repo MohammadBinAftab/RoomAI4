@@ -1,18 +1,14 @@
 import { NextResponse } from "next/server";
 import Replicate from "replicate";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+//import { authOptions } from "../../../lib/auth";
+import {supabase} from "@lib/supabase";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-export async function POST(req: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
+
 
     const { image, style, model } = await req.json();
 
@@ -38,4 +34,3 @@ export async function POST(req: Request) {
     console.error(error);
     return new NextResponse("Internal Error", { status: 500 });
   }
-}
