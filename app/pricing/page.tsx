@@ -1,11 +1,13 @@
-"use client";
+'use client';
 
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import Script from "next/script";
+import { useCredits } from "@/hooks/use-credits";
+import { useToast } from "@/components/ui/use-toast";
 
 declare global {
   interface Window {
@@ -46,17 +48,22 @@ const plans = [
 ];
 
 export default function PricingPage() {
-  const { data: session } = useSession();
+  const { isSignedIn, user } = useUser();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
+  const { addCredits } = useCredits(user?.id || '');
+  const { toast } = useToast();
 
-  const handlePayment = async (price: number) => {
-    if (!session) {
-      router.push("/api/auth/signin");
+  const handlePayment = async (price: number, planName: string, credits: number) => {
+    if (!isSignedIn) {
+      console.log("User not signed in. Redirecting to Clerk sign-in page...");
+      router.push(
+        "https://next-chamois-96.accounts.dev/sign-in?redirect_url=https%3A%2F%2Froom-ai-4.vercel.app%2F"
+      );
       return;
     }
 
-    setLoading(true);
+    setLoading((prev) => ({ ...prev, [planName]: true }));
 
     try {
       const response = await fetch("/api/create-order", {
@@ -71,15 +78,28 @@ export default function PricingPage() {
         amount: price * 100,
         currency: "INR",
         name: "Room Redesign",
-        description: `${price} credits package`,
+        description: `${credits} credits package`,
         order_id: data.order_id,
-        handler: function(response: any) {
-          console.log("Payment Successful", response);
-          // Handle successful payment here (e.g., update user credits)
+        handler: async function (response: any) {
+          try {
+            // Add credits to user's account
+            await addCredits(credits, 'purchase', `Purchased ${planName} plan`);
+            toast({
+              title: "Payment Successful",
+              description: `${credits} credits have been added to your account`,
+            });
+          } catch (error) {
+            console.error("Error adding credits:", error);
+            toast({
+              title: "Error",
+              description: "Failed to add credits. Please contact support.",
+              variant: "destructive",
+            });
+          }
         },
         prefill: {
-          name: session?.user?.name || "",
-          email: session?.user?.email || "",
+          name: user?.fullName || "",
+          email: user?.primaryEmailAddress || "",
         },
         theme: {
           color: "#3399cc",
@@ -90,8 +110,13 @@ export default function PricingPage() {
       razorpay.open();
     } catch (error) {
       console.error("Payment Failed", error);
+      toast({
+        title: "Payment Failed",
+        description: "Please try again or contact support.",
+        variant: "destructive",
+      });
     } finally {
-      setLoading(false);
+      setLoading((prev) => ({ ...prev, [planName]: false }));
     }
   };
 
@@ -130,14 +155,28 @@ export default function PricingPage() {
               </ul>
               <Button
                 className="mt-8 w-full"
-                onClick={() => handlePayment(plan.price)}
-                disabled={loading}
+                onClick={() => handlePayment(plan.price, plan.name, plan.credits)}
+                disabled={loading[plan.name]}
               >
-                {loading ? "Processing..." : "Pay Now"}
+                {loading[plan.name] ? "Processing..." : "Pay Now"}
               </Button>
             </div>
           ))}
         </div>
+
+        {!isSignedIn && (
+          <div className="text-center mt-6">
+            <Button
+              onClick={() =>
+                router.push(
+                  "https://next-chamois-96.accounts.dev/sign-in?redirect_url=https%3A%2F%2Froom-ai-4.vercel.app%2F"
+                )
+              }
+            >
+              Sign In to Purchase
+            </Button>
+          </div>
+        )}
       </div>
     </>
   );

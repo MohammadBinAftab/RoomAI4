@@ -1,20 +1,14 @@
 "use client";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SessionProvider } from "next-auth/react";
+import { ClerkProvider } from "@clerk/nextjs";
 
-
-export function Providers({children} : {
-    children: React.ReactNode
-}){
-    return <SessionProvider>
-        <TooltipProvider>
-
-                   
-        {children}
-                    
-                
-            
-        </TooltipProvider>
-    </SessionProvider>
+export function Providers({ children }: { children: React.ReactNode }) {
+    return (
+        <ClerkProvider>
+            <TooltipProvider>
+                {children}
+            </TooltipProvider>
+        </ClerkProvider>
+    );
 }

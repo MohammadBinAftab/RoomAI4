@@ -1,8 +1,7 @@
 "use client";
 
-
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +14,7 @@ import {
 import { Upload } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import { useToast } from "@/components/ui/use-toast";
+import { getUserCredits, updateUserCredits } from "@/lib/supabase";
 
 const styles = [
   { value: "tropical", label: "Tropical" },
@@ -24,35 +24,44 @@ const styles = [
   { value: "scandinavian", label: "Scandinavian" },
 ];
 
-const models = [
-  { value: "stable-diffusion", label: "Stable Diffusion" },
-  { value: "dall-e", label: "DALL-E 2" },
-];
+const CREDITS_PER_GENERATION = 1;
 
 export default function RedesignPage() {
-  const { data: session, status } = useSession();
+  const { isSignedIn, userId } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [image, setImage] = useState("");
+  const [originalImage, setOriginalImage] = useState("");
+  const [generatedImage, setGeneratedImage] = useState("");
   const [style, setStyle] = useState("");
-  const [model, setModel] = useState("");
   const [loading, setLoading] = useState(false);
+  const [credits, setCredits] = useState(0);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/api/auth/signin");
+    if (!isSignedIn) {
+      router.push("/sign-in");
+    } else if (userId) {
+      loadUserCredits();
     }
-  }, [status, router]);
+  }, [isSignedIn, router, userId]);
 
-  if (status === "loading") {
-    return <p>Loading...</p>;
+  const loadUserCredits = async () => {
+    if (!userId) return;
+    try {
+      const userCredits = await getUserCredits(userId);
+      setCredits(userCredits.available_credits);
+    } catch (error) {
+      console.error("Error loading credits:", error);
+    }
+  };
+
+  if (!isSignedIn) {
+    return <p>Redirecting to sign-in...</p>;
   }
 
-  // ✅ Handle Successful Upload from CldUploadWidget
   const handleUploadSuccess = async (result: any) => {
     try {
       const uploadedUrl = result.info.secure_url;
-      setImage(uploadedUrl);
+      setOriginalImage(uploadedUrl);
       toast({
         title: "Success",
         description: "Image uploaded successfully",
@@ -66,12 +75,11 @@ export default function RedesignPage() {
     }
   };
 
-  // ✅ Manual Upload Fallback (if CldUploadWidget Fails)
   const handleManualUpload = async (file: File) => {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("upload_preset",'room-redesign');
+      formData.append("upload_preset", "room-redesign");
 
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/dcbzyjj0e/image/upload`,
@@ -84,7 +92,7 @@ export default function RedesignPage() {
       if (!response.ok) throw new Error("Upload failed");
 
       const data = await response.json();
-      setImage(data.secure_url);
+      setOriginalImage(data.secure_url);
 
       toast({
         title: "Success",
@@ -99,12 +107,20 @@ export default function RedesignPage() {
     }
   };
 
-  // ✅ AI Image Generation Function
   const handleGenerate = async () => {
-    if (!image || !style || !model) {
+    if (!originalImage || !style) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please upload an image and select a style",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (credits < CREDITS_PER_GENERATION) {
+      toast({
+        title: "Error",
+        description: "Not enough credits",
         variant: "destructive",
       });
       return;
@@ -116,13 +132,24 @@ export default function RedesignPage() {
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image, style, model }),
+        body: JSON.stringify({ image: originalImage, style }),
       });
 
       if (!response.ok) throw new Error("Generation failed");
 
       const data = await response.json();
-      setImage(data.url);
+      setGeneratedImage(data.generatedImage);
+
+      // Deduct credits
+      if (userId) {
+        await updateUserCredits(
+          userId,
+          -CREDITS_PER_GENERATION,
+          'usage',
+          `Room redesign - ${style} style`
+        );
+        await loadUserCredits(); // Reload credits
+      }
 
       toast({
         title: "Success",
@@ -140,59 +167,88 @@ export default function RedesignPage() {
   };
 
   return (
-    <div className="container mx-auto max-w-4xl py-10">
+    <div className="container mx-auto max-w-6xl py-10">
       <div className="flex flex-col items-center gap-8">
         <div className="text-center">
           <h1 className="text-4xl font-bold">Redesign Your Room</h1>
           <p className="mt-2 text-muted-foreground">
             Upload a photo and let AI transform your space
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Credits available: <span className="font-semibold">{credits}</span>
+          </p>
+        </div>
+
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Original Image Section */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Original Room</h2>
+            <div className="flex flex-col items-center gap-4">
+              {originalImage ? (
+                <img
+                  src={originalImage}
+                  alt="Original Room"
+                  className="w-full aspect-video rounded-lg object-cover"
+                />
+              ) : (
+                <CldUploadWidget
+                  uploadPreset="room-redesign"
+                  onSuccess={handleUploadSuccess}
+                >
+                  {({ open }) => (
+                    <Button
+                      onClick={() => open()}
+                      className="h-[300px] w-full"
+                      variant="outline"
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload Room Photo
+                    </Button>
+                  )}
+                </CldUploadWidget>
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  e.target.files && handleManualUpload(e.target.files[0])
+                }
+                className="hidden"
+                id="file-upload"
+              />
+              <label htmlFor="file-upload">
+                <Button variant="outline">Or Select File</Button>
+              </label>
+            </div>
+          </div>
+
+          {/* Generated Image Section */}
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Redesigned Room</h2>
+            <div className="flex flex-col gap-4">
+              {generatedImage ? (
+                <img
+                  src={generatedImage}
+                  alt="Redesigned Room"
+                  className="w-full aspect-video rounded-lg object-cover"
+                />
+              ) : (
+                <div className="h-[300px] w-full rounded-lg bg-muted flex items-center justify-center">
+                  <p className="text-muted-foreground">
+                    Generated image will appear here
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="w-full max-w-md space-y-4">
-          {/* Image Upload Section */}
-          <div className="flex flex-col items-center gap-4">
-            {image ? (
-              <img
-                src={image}
-                alt="Room"
-                className="aspect-video w-full rounded-lg object-cover"
-              />
-            ) : (
-              <CldUploadWidget
-                uploadPreset="room-redesign"
-                onSuccess={handleUploadSuccess}
-              >
-                {({ open }) => (
-                  <Button
-                    onClick={() => open()}
-                    className="h-[200px] w-full"
-                    variant="outline"
-                  >
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Room Photo
-                  </Button>
-                )}
-              </CldUploadWidget>
-            )}
-
-            {/* Fallback Manual Upload */}
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => e.target.files && handleManualUpload(e.target.files[0])}
-              className="hidden"
-              id="file-upload"
-            />
-            <label htmlFor="file-upload">
-              <Button variant="outline">Or Select File</Button>
-            </label>
-          </div>
-
-          {/* Select Style */}
+          {/* Style Selection */}
           <Select value={style} onValueChange={setStyle}>
             <SelectTrigger>
-              <SelectValue placeholder="Select style" />
+              <SelectValue placeholder="Select room style" />
             </SelectTrigger>
             <SelectContent>
               {styles.map((style) => (
@@ -203,27 +259,13 @@ export default function RedesignPage() {
             </SelectContent>
           </Select>
 
-          {/* Select AI Model */}
-          <Select value={model} onValueChange={setModel}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select AI model" />
-            </SelectTrigger>
-            <SelectContent>
-              {models.map((model) => (
-                <SelectItem key={model.value} value={model.value}>
-                  {model.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
           {/* Generate Button */}
           <Button
             onClick={handleGenerate}
             className="w-full"
-            disabled={loading}
+            disabled={loading || !originalImage || !style || credits < CREDITS_PER_GENERATION}
           >
-            {loading ? "Generating..." : "Generate Design"}
+            {loading ? "Generating..." : `Generate Design (${CREDITS_PER_GENERATION} credit)`}
           </Button>
         </div>
       </div>
