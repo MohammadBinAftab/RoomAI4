@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import Replicate from "replicate";
+import { getServerSession } from "next-auth";
+import { supabase } from "@/lib/supabase";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -16,11 +18,10 @@ const stylePrompts = {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = getAuth(req);
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+    const session = await getServerSession(); // Get logged-in user session
+    if (!session || !session.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
     const { image, style } = await req.json();
 
     if (!style || !image) {
