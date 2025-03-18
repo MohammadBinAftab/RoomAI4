@@ -100,7 +100,7 @@ export default function RedesignPage() {
       if (!response.ok) throw new Error("Generation failed");
 
       const data = await response.json();
-      setGeneratedImage(data.generatedImage);
+      setGeneratedImage(data.url);
 
       if (userId) {
         await updateUserCredits(
