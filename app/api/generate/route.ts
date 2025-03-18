@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     const prompt = stylePrompts[style as keyof typeof stylePrompts];
 
     const output = await replicate.run(
-      "stability-ai/stable-diffusion:ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",
+      "stability-ai/stable-diffusion-controlnet:canny",
       {
         input: {
           prompt,
@@ -47,6 +47,8 @@ export async function POST(req: Request) {
           num_outputs: 1,
           guidance_scale: 7.5,
           num_inference_steps: 50,
+          controlnet_conditioning_scale: 0.7, // Adjusts how much the image influences the result
+          controlnet_preprocess: true,
           a_prompt:
             "best quality, extremely detailed, photo from Pinterest, interior, cinematic photo, ultra-detailed, ultra-realistic, award-winning",
           n_prompt:
