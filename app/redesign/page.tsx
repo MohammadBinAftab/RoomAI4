@@ -27,7 +27,7 @@ const styles = [
 const CREDITS_PER_GENERATION = 1;
 
 export default function RedesignPage() {
-  const { isSignedIn, userId } = useAuth();
+  const { userId } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [originalImage, setOriginalImage] = useState("");
@@ -37,12 +37,10 @@ export default function RedesignPage() {
   const [credits, setCredits] = useState(100);
 
   useEffect(() => {
-    if (!isSignedIn) {
-      router.push("/sign-in");
-    } else if (userId) {
+    if (userId) {
       loadUserCredits();
     }
-  }, [isSignedIn, router, userId]);
+  }, [userId]);
 
   const loadUserCredits = async () => {
     if (!userId) return;
@@ -54,11 +52,7 @@ export default function RedesignPage() {
     }
   };
 
-  if (!isSignedIn) {
-    return <p>Redirecting to sign-in...</p>;
-  }
-
-  const handleUploadSuccess = async (result: any) => {
+  const handleUploadSuccess = async (result) => {
     try {
       const uploadedUrl = result.info.secure_url;
       setOriginalImage(uploadedUrl);
@@ -70,38 +64,6 @@ export default function RedesignPage() {
       toast({
         title: "Error",
         description: "Upload failed",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleManualUpload = async (file: File) => {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "room-redesign");
-
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/dcbzyjj0e/image/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!response.ok) throw new Error("Upload failed");
-
-      const data = await response.json();
-      setOriginalImage(data.secure_url);
-
-      toast({
-        title: "Success",
-        description: "Image uploaded successfully",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to upload image",
         variant: "destructive",
       });
     }
@@ -140,15 +102,14 @@ export default function RedesignPage() {
       const data = await response.json();
       setGeneratedImage(data.generatedImage);
 
-      // Deduct credits
       if (userId) {
         await updateUserCredits(
           userId,
           -CREDITS_PER_GENERATION,
-          'usage',
+          "usage",
           `Room redesign - ${style} style`
         );
-        await loadUserCredits(); // Reload credits
+        await loadUserCredits();
       }
 
       toast({
@@ -180,7 +141,6 @@ export default function RedesignPage() {
         </div>
 
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Original Image Section */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Original Room</h2>
             <div className="flex flex-col items-center gap-4">
@@ -196,34 +156,15 @@ export default function RedesignPage() {
                   onSuccess={handleUploadSuccess}
                 >
                   {({ open }) => (
-                    <Button
-                      onClick={() => open()}
-                      className="h-[300px] w-full"
-                      variant="outline"
-                    >
+                    <Button onClick={() => open()} className="h-[300px] w-full" variant="outline">
                       <Upload className="mr-2 h-4 w-4" />
                       Upload Room Photo
                     </Button>
                   )}
                 </CldUploadWidget>
               )}
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  e.target.files && handleManualUpload(e.target.files[0])
-                }
-                className="hidden"
-                id="file-upload"
-              />
-              <label htmlFor="file-upload">
-                <Button variant="outline">Or Select File</Button>
-              </label>
             </div>
           </div>
-
-          {/* Generated Image Section */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Redesigned Room</h2>
             <div className="flex flex-col gap-4">
@@ -245,7 +186,6 @@ export default function RedesignPage() {
         </div>
 
         <div className="w-full max-w-md space-y-4">
-          {/* Style Selection */}
           <Select value={style} onValueChange={setStyle}>
             <SelectTrigger>
               <SelectValue placeholder="Select room style" />
@@ -259,7 +199,6 @@ export default function RedesignPage() {
             </SelectContent>
           </Select>
 
-          {/* Generate Button */}
           <Button
             onClick={handleGenerate}
             className="w-full"
