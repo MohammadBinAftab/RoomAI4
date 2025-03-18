@@ -14,6 +14,7 @@ import {
 import { Upload } from "lucide-react";
 import { CldUploadWidget } from "next-cloudinary";
 import { useToast } from "@/components/ui/use-toast";
+import { getUserCredits, updateUserCredits } from "@/lib/supabase";
 
 const styles = [
   { value: "tropical", label: "Tropical" },
@@ -23,20 +24,35 @@ const styles = [
   { value: "scandinavian", label: "Scandinavian" },
 ];
 
+const CREDITS_PER_GENERATION = 1;
+
 export default function RedesignPage() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, userId } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [originalImage, setOriginalImage] = useState("");
   const [generatedImage, setGeneratedImage] = useState("");
   const [style, setStyle] = useState("");
   const [loading, setLoading] = useState(false);
+  const [credits, setCredits] = useState(0);
 
   useEffect(() => {
     if (!isSignedIn) {
       router.push("/sign-in");
+    } else if (userId) {
+      loadUserCredits();
     }
-  }, [isSignedIn, router]);
+  }, [isSignedIn, router, userId]);
+
+  const loadUserCredits = async () => {
+    if (!userId) return;
+    try {
+      const userCredits = await getUserCredits(userId);
+      setCredits(userCredits.available_credits);
+    } catch (error) {
+      console.error("Error loading credits:", error);
+    }
+  };
 
   if (!isSignedIn) {
     return <p>Redirecting to sign-in...</p>;
@@ -101,6 +117,15 @@ export default function RedesignPage() {
       return;
     }
 
+    if (credits < CREDITS_PER_GENERATION) {
+      toast({
+        title: "Error",
+        description: "Not enough credits",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -114,6 +139,17 @@ export default function RedesignPage() {
 
       const data = await response.json();
       setGeneratedImage(data.generatedImage);
+
+      // Deduct credits
+      if (userId) {
+        await updateUserCredits(
+          userId,
+          -CREDITS_PER_GENERATION,
+          'usage',
+          `Room redesign - ${style} style`
+        );
+        await loadUserCredits(); // Reload credits
+      }
 
       toast({
         title: "Success",
@@ -137,6 +173,9 @@ export default function RedesignPage() {
           <h1 className="text-4xl font-bold">Redesign Your Room</h1>
           <p className="mt-2 text-muted-foreground">
             Upload a photo and let AI transform your space
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Credits available: <span className="font-semibold">{credits}</span>
           </p>
         </div>
 
@@ -224,9 +263,9 @@ export default function RedesignPage() {
           <Button
             onClick={handleGenerate}
             className="w-full"
-            disabled={loading || !originalImage || !style}
+            disabled={loading || !originalImage || !style || credits < CREDITS_PER_GENERATION}
           >
-            {loading ? "Generating..." : "Generate Design"}
+            {loading ? "Generating..." : `Generate Design (${CREDITS_PER_GENERATION} credit)`}
           </Button>
         </div>
       </div>
