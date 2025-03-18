@@ -9,11 +9,11 @@ const replicate = new Replicate({
 });
 
 const stylePrompts = {
-  tropical: "Transform this room into a tropical paradise with lush plants, natural materials, and warm colors",
-  modern: "Redesign this room with a modern aesthetic, clean lines, contemporary furniture, and a sophisticated color palette",
-  minimalist: "Convert this room into a minimalist space with essential furniture, clean surfaces, and a neutral color scheme",
-  industrial: "Transform this room with an industrial style, featuring exposed materials, metal accents, and urban elements",
-  scandinavian: "Redesign this room in Scandinavian style with light woods, neutral colors, and cozy minimalist furniture"
+  tropical: "Transform this photo into a tropical paradise with lush plants, natural materials, and warm colors",
+  modern: "Redesign this photo with a modern aesthetic, clean lines, contemporary furniture, and a sophisticated color palette",
+  minimalist: "Convert this photo into a minimalist space with essential furniture, clean surfaces, and a neutral color scheme",
+  industrial: "Transform this photo with an industrial style, featuring exposed materials, metal accents, and urban elements",
+  scandinavian: "Redesign this photo in Scandinavian style with light woods, neutral colors, and cozy minimalist furniture"
 };
 
 export async function POST(req: Request) {
