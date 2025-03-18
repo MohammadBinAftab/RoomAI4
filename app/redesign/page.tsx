@@ -52,7 +52,7 @@ export default function RedesignPage() {
     }
   };
 
-  const handleUploadSuccess = async (result) => {
+  const handleUploadSuccess = async (result: any) => {
     try {
       const uploadedUrl = result.info.secure_url;
       setOriginalImage(uploadedUrl);
