@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Paintbrush } from "lucide-react";
 import { UserButton, SignInButton, SignedIn, SignedOut, useUser } from "@clerk/nextjs";
+import { CreditsDisplay } from "@/components/credits-display";  
 
 export function Navbar() {
   const { user } = useUser();
@@ -24,6 +25,7 @@ export function Navbar() {
           <Link href="/pricing">
             <Button variant="ghost">Pricing</Button>
           </Link>
+       
 
           <SignedOut>
             <SignInButton>
