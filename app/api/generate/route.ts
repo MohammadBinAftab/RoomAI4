@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     const prompt = stylePrompts[style as keyof typeof stylePrompts];
 
     const output = await replicate.run(
-      "stability-ai/stable-diffusion-img2img:15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
+      "stability-ai/stable-diffusion:ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",
       {
         input: {
           prompt,
