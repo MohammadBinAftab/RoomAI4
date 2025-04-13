@@ -1,32 +1,27 @@
-import { NextResponse } from "next/server";
-import { getAuth } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server"; // Not getAuth
 import Replicate from "replicate";
-import { getServerSession } from "next-auth";
-import { supabase } from "@/lib/supabase";
+import { NextResponse } from "next/server";
+import { getUserCredits, updateUserCredits } from "@/lib/supabase";
 
 const replicate = new Replicate({
-  auth: process.env.REPLICATE_API_TOKEN,
+  auth: process.env.REPLICATE_API_TOKEN!,
 });
 
 const stylePrompts = {
-  tropical:
-    "Transform this photo into a tropical paradise with lush plants, natural materials, and warm colors",
-  modern:
-    "Redesign this photo with a modern aesthetic, clean lines, contemporary furniture, and a sophisticated color palette",
-  minimalist:
-    "Convert this photo into a minimalist space with essential furniture, clean surfaces, and a neutral color scheme",
-  industrial:
-    "Transform this photo with an industrial style, featuring exposed materials, metal accents, and urban elements",
-  scandinavian:
-    "Redesign this photo in Scandinavian style with light woods, neutral colors, and cozy minimalist furniture",
+  tropical: "Transform this photo into a tropical paradise...",
+  modern: "Redesign this photo with a modern aesthetic...",
+  minimalist: "Convert this photo into a minimalist space...",
+  industrial: "Transform this photo with an industrial style...",
+  scandinavian: "Redesign this photo in Scandinavian style...",
 };
 
 export async function POST(req: Request) {
   try {
-    const session = await getServerSession(); // Get logged-in user session
-    if (!session || !session.user?.email) {
+    const { userId } = auth(); // use Clerk's server-side auth
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
     const { image, style } = await req.json();
 
     if (!style || !image) {
@@ -43,14 +38,14 @@ export async function POST(req: Request) {
       {
         input: {
           prompt,
-          image: image,
+          image,
           num_outputs: 1,
           guidance_scale: 7.5,
           num_inference_steps: 50,
           a_prompt:
-            "best quality, extremely detailed, photo from Pinterest, interior, cinematic photo, ultra-detailed, ultra-realistic, award-winning",
+            "best quality, extremely detailed, photo from Pinterest...",
           n_prompt:
-            "longbody, lowres, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality",
+            "longbody, lowres, bad anatomy, bad hands, missing fingers...",
         },
       }
     );
@@ -61,6 +56,14 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+
+    // Deduct credits from Supabase
+    await updateUserCredits(
+      userId,
+      -1,
+      "usage",
+      `Room redesign - ${style} style`
+    );
 
     return NextResponse.json({
       url: output[0],
