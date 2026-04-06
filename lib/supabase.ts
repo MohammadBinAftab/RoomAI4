@@ -56,8 +56,8 @@ export async function updateUserCredits(
   await supabase
     .from('credits')
     .update({
-      available_credits: Math.max(0, currentCredits.available_credits + amount),
-      lifetime_credits: currentCredits.lifetime_credits + Math.max(0, amount),
+      available_credits: Math.max(0, (currentCredits?.available_credits || 0) + amount),
+      lifetime_credits: (currentCredits?.lifetime_credits || 0) + Math.max(0, amount),
       updated_at: new Date().toISOString()
     })
     .eq('user_id', userId);
