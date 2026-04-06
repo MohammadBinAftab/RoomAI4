@@ -31,6 +31,11 @@ export async function POST(req: Request) {
       );
     }
 
+    const credits = await getUserCredits(userId);
+    if (credits.available_credits < 1) {
+      return NextResponse.json({ error: "Insufficient credits" }, { status: 403 });
+    }
+
     const prompt = stylePrompts[style as keyof typeof stylePrompts];
 
     const output = await replicate.run(

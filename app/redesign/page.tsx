@@ -34,7 +34,7 @@ export default function RedesignPage() {
   const [generatedImage, setGeneratedImage] = useState("");
   const [style, setStyle] = useState("");
   const [loading, setLoading] = useState(false);
-  const [credits, setCredits] = useState(100);
+  const [credits, setCredits] = useState(0);
 
   useEffect(() => {
     if (userId) {
@@ -103,12 +103,6 @@ export default function RedesignPage() {
       setGeneratedImage(data.url);
 
       if (userId) {
-        await updateUserCredits(
-          userId,
-          -CREDITS_PER_GENERATION,
-          "usage",
-          `Room redesign - ${style} style`
-        );
         await loadUserCredits();
       }
 

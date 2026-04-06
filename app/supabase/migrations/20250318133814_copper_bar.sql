@@ -80,7 +80,7 @@ CREATE POLICY "Service role can manage all transactions"
     TO service_role
     USING (true);
 
-Create function to update updated_at timestamp
+-- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN

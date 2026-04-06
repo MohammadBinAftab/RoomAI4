@@ -1,12 +1,11 @@
 'use client';
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, SignInButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import Script from "next/script";
-import { useCredits } from "@/hooks/use-credits";
 import { useToast } from "@/components/ui/use-toast";
 
 declare global {
@@ -18,16 +17,16 @@ declare global {
 const plans = [
   {
     name: "Starter",
-    price: 10,
-    credits: 10,
-    features: ["10 room redesigns", "All styles available", "24/7 support"],
+    price: 99,
+    credits: 50,
+    features: ["50 room redesigns", "All styles available", "24/7 support"],
   },
   {
     name: "Pro",
-    price: 25,
-    credits: 30,
+    price: 249,
+    credits: 150,
     features: [
-      "30 room redesigns",
+      "150 room redesigns",
       "All styles available",
       "Priority support",
       "HD downloads",
@@ -35,10 +34,10 @@ const plans = [
   },
   {
     name: "Enterprise",
-    price: 50,
-    credits: 70,
+    price: 499,
+    credits: 400,
     features: [
-      "70 room redesigns",
+      "400 room redesigns",
       "All styles available",
       "Priority support",
       "HD downloads",
@@ -51,15 +50,14 @@ export default function PricingPage() {
   const { isSignedIn, user } = useUser();
   const router = useRouter();
   const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
-  const { addCredits } = useCredits(user?.id || '');
   const { toast } = useToast();
 
   const handlePayment = async (price: number, planName: string, credits: number) => {
     if (!isSignedIn) {
-      console.log("User not signed in. Redirecting to Clerk sign-in page...");
-      router.push(
-        "https://next-chamois-96.accounts.dev/sign-in?redirect_url=https%3A%2F%2Froom-ai-4.vercel.app%2F"
-      );
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to make a purchase.",
+      });
       return;
     }
 
@@ -82,17 +80,36 @@ export default function PricingPage() {
         order_id: data.order_id,
         handler: async function (response: any) {
           try {
-            // Add credits to user's account
-            await addCredits(credits, 'purchase', `Purchased ${planName} plan`);
+            // Verify payment on server and add credits
+            const verifyRes = await fetch("/api/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_signature: response.razorpay_signature,
+                credits,
+                planName,
+              }),
+            });
+
+            if (!verifyRes.ok) {
+              const errorBlock = await verifyRes.json();
+              throw new Error(errorBlock.error || "Payment verification failed");
+            }
+
             toast({
               title: "Payment Successful",
               description: `${credits} credits have been added to your account`,
             });
+            setTimeout(() => {
+              window.location.reload();
+            }, 2000);
           } catch (error) {
-            console.error("Error adding credits:", error);
+            console.error("Error verifying payment:", error);
             toast({
               title: "Error",
-              description: "Failed to add credits. Please contact support.",
+              description: "Failed to verify or add credits. Please contact support.",
               variant: "destructive",
             });
           }
@@ -139,8 +156,8 @@ export default function PricingPage() {
             >
               <h3 className="text-2xl font-bold">{plan.name}</h3>
               <div className="mt-4 flex items-baseline">
-                <span className="text-4xl font-bold">${plan.price}</span>
-                <span className="ml-1 text-muted-foreground">/month</span>
+                <span className="text-4xl font-bold">₹{plan.price}</span>
+                <span className="ml-1 text-muted-foreground">/once</span>
               </div>
               <p className="mt-2 text-muted-foreground">
                 {plan.credits} credits included
@@ -166,15 +183,11 @@ export default function PricingPage() {
 
         {!isSignedIn && (
           <div className="text-center mt-6">
-            <Button
-              onClick={() =>
-                router.push(
-                  "https://next-chamois-96.accounts.dev/sign-in?redirect_url=https%3A%2F%2Froom-ai-4.vercel.app%2F"
-                )
-              }
-            >
-              Sign In to Purchase
-            </Button>
+            <SignInButton mode="modal">
+              <Button>
+                Sign In to Purchase
+              </Button>
+            </SignInButton>
           </div>
         )}
       </div>

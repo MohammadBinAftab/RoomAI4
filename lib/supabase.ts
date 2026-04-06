@@ -12,7 +12,26 @@ export async function getUserCredits(userId: string) {
     .eq('user_id', userId)
     .single();
 
-  if (error && error.code !== 'PGSQL_NO_ROWS_RETURNED') throw error;
+  if (error && (error.code === 'PGRST116' || error.code === 'PGSQL_NO_ROWS_RETURNED')) {
+    // New user, give 1 free credit automatically
+    const { data: newRecord, error: insertError } = await supabase
+      .from('credits')
+      .insert({
+        user_id: userId,
+        available_credits: 1,
+        lifetime_credits: 1
+      })
+      .select('*')
+      .single();
+      
+    if (insertError) {
+      console.error("Error creating initial credits:", insertError);
+      return { available_credits: 1, lifetime_credits: 1 };
+    }
+    return newRecord;
+  }
+  
+  if (error) throw error;
   return data || { available_credits: 0, lifetime_credits: 0 };
 }
 
@@ -74,12 +93,6 @@ export async function getUserTransactions(userId: string) {
 
 // Get user's credit balance
 export async function getCreditBalance(userId: string) {
-  const { data, error } = await supabase
-    .from('credits')
-    .select('available_credits')
-    .eq('user_id', userId)
-    .single();
-
-  if (error && error.code !== 'PGSQL_NO_ROWS_RETURNED') throw error;
-  return data?.available_credits || 0;
+  const credits = await getUserCredits(userId);
+  return credits?.available_credits || 0;
 }
