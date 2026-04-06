@@ -47,26 +47,20 @@ export async function updateUserCredits(
     .eq('user_id', userId)
     .single();
 
-  if (!credits) {
-    // Create initial credits record
-    await supabase
-      .from('credits')
-      .insert({
-        user_id: userId,
-        available_credits: Math.max(0, amount),
-        lifetime_credits: Math.max(0, amount)
-      });
-  } else {
-    // Update existing credits
-    await supabase
-      .from('credits')
-      .update({
-        available_credits: Math.max(0, credits.available_credits + amount),
-        lifetime_credits: credits.lifetime_credits + Math.max(0, amount),
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', userId);
+  let currentCredits = credits;
+  if (!currentCredits) {
+    currentCredits = await getUserCredits(userId);
   }
+
+  // Update existing credits
+  await supabase
+    .from('credits')
+    .update({
+      available_credits: Math.max(0, currentCredits.available_credits + amount),
+      lifetime_credits: currentCredits.lifetime_credits + Math.max(0, amount),
+      updated_at: new Date().toISOString()
+    })
+    .eq('user_id', userId);
 
   // Log the transaction
   await supabase
